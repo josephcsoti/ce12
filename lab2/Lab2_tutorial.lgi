@@ -1,13 +1,16 @@
-// Joseph Csoti - jcsoti@ucsc.edu
-// Lab #2 - Introduction To Logic With Multimedia Logic
-// 05/20/18
-// CMPE 12 - 01D Rebecca
-
 41 2 0
 38 1
 8 119 304 168 255 1 0
 7 324 206 373 157 2 1
-1 165 279 325 181
+22 16 38 235 18 0 \NUL
+// Joseph Csoti - jcsoti@ucsc.edu
+22 16 80 88 60 0 \NUL
+// 05/20/18
+22 16 58 372 38 0 \NUL
+// Lab #2 - Introduction To Logic With Multimedia Logic
+22 13 101 186 81 0 \NUL
+// CMPE 12 - 01D Rebecca
+1 325 181 165 279
 39 16777215
 47 0
 40 1 6 6
