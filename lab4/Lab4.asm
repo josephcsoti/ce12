@@ -6,7 +6,7 @@
 
 # Strings to be printed
 .data
-	str_enternum:  .asciiz "Enter a number: "
+	str_enternum:  .asciiz "Please input a number:"
 	str_feed:      .asciiz "Feed\n"
 	str_babe:      .asciiz "Babe\n"
 	str_feedbabe:  .asciiz "FeedBabe\n"
