@@ -8,126 +8,144 @@
 # =============
 
 .data
+	str_prehex: .asciiz "0x"
   str_message_a: .asciiz "Input a hex number:\n"
   str_message_b: .ascii "The decimal value is:\n"
-  str_prehex: .asciiz "0x"
   str_nl: .asciiz "\n"
-  str_a: .asciiz "_0"
-  str_b: .asciiz "_a"
-
-# 1. Read	program	argument	string - DONE
-
-# 2. Convert	the	program	argument	to	a	binary	integer in	$s0.
-# 3. Convert	the	value in $s0	as	a 2SC	number	to	an	ASCII	decimal	number.
-# 4. Print	the	correct	signed	ASCII	decimal	number before	exiting	cleanly.
-
-# ASCII STRING  30 30 30 30 _ 30 46 30 30
-# HEX   STRING   0  0  0  0 _  0  F  0  0
-
-# IF HEX < 30 
-# HEX - 30 = DEC
-# 30 > 0
-# ...
-# 39 > 9
-
-# IF HEX > 40
-# HEX - 31 = dec
-# 41 > 10
-# ...
-# 46 > 15
-
-# 0000 0000 0000 0000 0000 0000 1111 0000 = 240
-#    0    0    0    0    0    0    F    0
+  array: .space 10
 
 # DEFINE REGISTERS
 # $s0 = ANSWER
-# $s1 = 16 bits of input
-# $s2 = 16 bits of input (2nd half)
-# $s3 = value of 1/2
-# $s4 = value of 2/2
+# $s1 = TEMP_answer
+# $s2 = SHIFT_COUNT
+# $s3 = ????
+# $s4 = ARRAY POINTER (TOP)
+# $s5 = CUURENT ARRAY POINTER
+# $s6 = store if pos/neg
 # ---
 # $t0 = COPY OF ADDY
 # $t1 = ADDY + 2
-# $t2 = ADDY + 4
-# $t3 = DIVIDER
-# $t4 = NUM
-# $t5 = REM
+# $t2 = CURSOR
+
 # $t6 = CNT
 # $t7 = ITER
-# $t8 = ASCII TO HEX HELPER NUM (40)
+
+# $t9 = 4
 
 .text
-  li $s0, 0 #Value result
-  li $t3, 256 # gives us 2 digits
-  li $t6, 6
-  li $t8, 0x40
 
-  la  $t0, ($a1) #copy address to $t0
-  lw  $t1, ($t0) #load addy into t1
-  add $t1, $t1, 2
-  add	$t2, $t1, 4		# $t2 = $t1 + 4
+  main:
+    li $s0, 0 #Value result
+    li $s1, 0
+    li $s2, 28
+    la $s4, array
 
-  lw $s1, ($t1) #load value into 7 from addy of 1
-  lw $s2, ($t2) #load value into 7 from addy of 2
+    li $t3, 0
+    la $t4, ($s0)
+    li $t6, 8 # i < 8
+    li $t7, 1 # int i
+    li $t8, 10
+    li $t9, 4
 
-  jal print_message_a
-  jal print_hex
+    la  $t0, ($a1) #copy address to $t0
+    lw  $t1, ($t0) #load addy into t1
+    addi $t1, $t1, 2 #shift away from "0x" prefix
 
-	# loop_half_a:
-	# 	bgt $t7, $t6, end_a # loop test (if i<=N) else exit
-	# 	jal ascii_hex_a
-	# 	addi $t7, $t7, 2 # i++
-	# 	j loop_half_a # goto top
-  # end_a:
-  #   li $t7, 0
+    la $t2, ($t1)
+    #add $t2, $t1, $zero
+
+    jal print_message_a
+    jal print_hex
+    jal print_message_b
+
+    #sb ++
+    #lb --
+
+  loop:
+  	bgt $t7, $t6, end_loop
+		jal ascii_hex
+		addi $t7, $t7, 1 # i++
+    addi $t2, $t2, 1 #move pointer
+    sub $s2, $s2, 4 # move # to shift
+		j loop # goto top
+  end_loop:
+    j end
+
+  ascii_hex:
+    lb		$s7, ($t2)
+    ble		$s7, 0x39, is_num	  # if $t5 < $t8 then print_num
+    bge		$s7, 0x41, is_char	# if $t5 > $t8 then print_char
+    jr $ra
+
+  #ASCII > DEC = ASCII - 48
+  is_num:
+    sub		$s7, $s7, 48		# $s7 = $s7 - 48
+    sllv $s1, $s7, $s2 
+    or $s0, $s0, $s1
+    jr $ra
+
+  #ASCII > DEC = ASCII - 55
+  is_char:
+    sub		$s7, $s7, 55		# $s7 = $s7 - 55
+    sllv $s1, $s7, $s2 
+    or $s0, $s0, $s1
+    jr $ra
   
-  # loop_half_b:
-	# 	bgt $t7, $t6, end_b # loop test (if i<=N) else exit
-	# 	jal ascii_hex_b
-	# 	addi $t7, $t7, 2 # i++
-	# 	j loop_half_b # goto top
-  # end_b:
-  #   li $t7, 0
+  end:
+  # $t3 = COUNT
+  # $t4 = QUOTIENT
+  # $t5 = REM
 
 
-  #more stuff
-  jal print_message_b
+  la		$t4, ($s0)
+
+  loop_count:
+    beqz $t4, end_count
+		div		$t4, $t8			# $t4 / 10
+    mflo	$t4 				# $t2 = floor($t4 / 10) 
+    addi $t3, $t3, 1 #count
+		j loop_count # goto top
+  end_count:
+    la $t4, ($s0)
+    add $s5, $s4, $t3
+    
+    # li $s5, 0 # add /0 char to end string
+    # #sb		$t5, ($s5) # storew
+    # sub	$s5 $s5, 1 # move
+
+    j loop_store
+
+  loop_store:
+    beqz $t4, end_store
+    jal store_ascii
+    j loop_store
+  end_store:
+    j print
+
+  store_ascii:
+    div		$t4, $t8			# $t4 / 10
+    mflo	$t4 				# $t2 = floor($t4 / 10) 
+    mfhi	$t5					# $t3 = $t4 mod 10
+
+    addi		$t5, $t5, 48		# $t5 = $t1 + 48
+
+    sb		$t5, ($s5)
+    sub	$s5 $s5, 1
+
+    jr $ra
+
+
+  print:
+    li  $v0, 4
+    la  $a0, ($s4)
+    syscall
+    j exit
 
   exit:
     li	$v0, 10  # exit code
 		syscall
 
-  # ascii_hex_a:
-  #   div		$s1, $t3		# $t0 / $t1
-  #   mflo	$t4					# $t2 = floor($t0 / $t1) 
-  #   mfhi	$t5 				# $t3 = $t0 mod $t1
-
-  #   ble		$t5, $t8, hex_num	  # if $t5 < $t8 then print_num
-  #   bgt		$t5, $t8, hex_letter	# if $t5 > $t8 then print_char
-    
-  #   jr $ra
-
-  # ascii_hex_b:
-  #   div		$s2, $t3		# $t0 / $t1
-  #   mflo	$t4					# $t2 = floor($t0 / $t1) 
-  #   mfhi	$t5 				# $t3 = $t0 mod $t1
-
-  #   ble		$t5, $t8, hex_num	  # if $t5 < $t8 then print_num
-  #   bgt		$t5, $t8, hex_letter	# if $t5 > $t8 then print_char
-    
-  #   jr $ra
-
-  # hex_num:
-  #   li  $v0, 4
-  #   la  $a0, str_a
-  #   syscall
-  #   jr $ra
-    
-  # hex_letter:
-  # 	li  $v0, 4
-  #   la  $a0, str_b
-  #   syscall
-  #   jr $ra
+  # 11 chars long max, 10 nums & - sign
 
   print_message_a:
   	li  $v0, 4
