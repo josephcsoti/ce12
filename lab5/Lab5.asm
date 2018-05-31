@@ -1,10 +1,7 @@
 # Lab5.asm
 # Joseph Csoti, jcsoti@ucsc.edu
 # CMPE 12 SPRING 2018
-# Section 01D, Rebecca
-
-#CANT USE 1, 5, 6, 7, 8, 36
-
+# Section 01D, Carlos
 # =============
 
 .data
@@ -44,20 +41,15 @@
     li $t7, 1 # int i
     li $t8, 10
 
-
     la  $t0, ($a1) #copy address to $t0
     lw  $t1, ($t0) #load addy into t1
     addi $t1, $t1, 2 #shift away from "0x" prefix
 
     la $t2, ($t1)
-    #add $t2, $t1, $zero
 
     jal print_message_a
     jal print_hex
     jal print_message_b
-
-    #sb ++
-    #lb --
 
   loop:
   	bgt $t7, $t6, end_loop
@@ -88,14 +80,29 @@
     sllv $s1, $s7, $s2 
     or $s0, $s0, $s1
     jr $ra
+
+
+  
   
   end:
-  # $t3 = COUNT
-  # $t4 = QUOTIENT
-  # $t5 = REM
 
   # $t9
-  move 	$t4, $s0 # now hold answer
+
+  #blt		$s0, $zero, target	# if $s0 < zero1 then target
+
+  #s8 copy of $s0
+  move $s6, $s0
+
+  blt		$s6, $zero, do_complement	# if $s8 < zero1 then target
+  j do_more
+
+do_complement:
+  sub $s6, $zero, $s6 # makes positive
+  #addi $s6, $s6, 1
+
+do_more:
+
+  move 	$t4, $s6 # now hold answer
   la $t9, array #pointer
 
   loop_count:
@@ -105,7 +112,7 @@
     addi $t3, $t3, 1 #count
 		j loop_count # goto top
   end_count:
-    move 	$t4, $s0 # now hold answer
+    move 	$t4, $s6 # now hold answer
     add $t9, $t9, $t3 # how much to offest
     j loop_store
 
@@ -128,6 +135,15 @@
     jr $ra
 
   print:
+    blt		$s0, $zero, print_neg	# if $s0 < zero then target
+    j print_num
+
+  print_neg:
+    li  $v0, 11
+    la  $a0, 45
+    syscall
+
+  print_num:
     la $t9, array
     addi $t9, $t9, 1
     li  $v0, 4
