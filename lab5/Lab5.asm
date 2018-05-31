@@ -8,10 +8,10 @@
 # =============
 
 .data
+  str_nl: .asciiz "\n"
 	str_prehex: .asciiz "0x"
   str_message_a: .asciiz "Input a hex number:\n"
   str_message_b: .ascii "The decimal value is:\n"
-  str_nl: .asciiz "\n"
   array: .space 10
 
 # DEFINE REGISTERS
@@ -30,22 +30,20 @@
 # $t6 = CNT
 # $t7 = ITER
 
-# $t9 = 4
-
 .text
 
   main:
     li $s0, 0 #Value result
     li $s1, 0
     li $s2, 28
-    la $s4, array
+    #la $s4, array
 
     li $t3, 0
     la $t4, ($s0)
     li $t6, 8 # i < 8
     li $t7, 1 # int i
     li $t8, 10
-    li $t9, 4
+
 
     la  $t0, ($a1) #copy address to $t0
     lw  $t1, ($t0) #load addy into t1
@@ -96,8 +94,9 @@
   # $t4 = QUOTIENT
   # $t5 = REM
 
-
-  la		$t4, ($s0)
+  # $t9
+  move 	$t4, $s0 # now hold answer
+  la $t9, array #pointer
 
   loop_count:
     beqz $t4, end_count
@@ -106,13 +105,8 @@
     addi $t3, $t3, 1 #count
 		j loop_count # goto top
   end_count:
-    la $t4, ($s0)
-    add $s5, $s4, $t3
-    
-    # li $s5, 0 # add /0 char to end string
-    # #sb		$t5, ($s5) # storew
-    # sub	$s5 $s5, 1 # move
-
+    move 	$t4, $s0 # now hold answer
+    add $t9, $t9, $t3 # how much to offest
     j loop_store
 
   loop_store:
@@ -128,16 +122,16 @@
     mfhi	$t5					# $t3 = $t4 mod 10
 
     addi		$t5, $t5, 48		# $t5 = $t1 + 48
-
-    sb		$t5, ($s5)
-    sub	$s5 $s5, 1
-
+    sb		$t5, 0($t9)		# 
+    
+    sub	$t9, $t9, 1
     jr $ra
 
-
   print:
+    la $t9, array
+    addi $t9, $t9, 1
     li  $v0, 4
-    la  $a0, ($s4)
+    la  $a0, ($t9)
     syscall
     j exit
 
