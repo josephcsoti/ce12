@@ -23,6 +23,48 @@
 # $t8 = 10 (div helper)
 # $t9 = ARRAY pointer
 
+# --- PSEUDOCODE ---
+
+# store string data
+# Set default values
+
+# copy address of input
+
+# print message
+# print hex
+
+# loop (convert to decimal)
+  # get each "letter"
+    # if char or num
+      # char -55, num - 48
+      # add value to register (OR)
+  # move pointer
+
+# if # is neg. take 2CS
+  # make positive + 1
+
+# copy answer
+# count digits
+  # answer / 10
+    # answer = quotient
+
+# Get array address + # of digits
+
+# loop (dec > ascii in array)
+  # divide by 10, ANS /10
+    # ANS = Quotient
+    # REMAINDER + 48 = ascii value
+    # store ASCII value in array + offset
+    # offset--
+
+# print number
+  # if "-" flag is set print "-" char
+  # print string from array poimter
+
+# exit cleanly
+
+# --- END OF PSEUDOCODE ---
+
 .data
   str_nl: .asciiz "\n"
 	str_prehex: .asciiz "0x"
