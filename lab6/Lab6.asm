@@ -5,20 +5,106 @@
 # =============
 
 # --- PSEUDOCODE ---
+# print_str()
+# 	syscall 4
+# print_int()
+# 	syscall 1
+# split_float()
+#   store mantissa
+#   shift 23 bits
+#   store mantissa
+#   shift 8
+#   store expo
+#   store sign
+# print_bitstr()
+#   Create mask bit in LSB
+#   counter (starting from length)
+#   move mask to MSB
+#   loop:
+#     BREAK if == 0
+#     AND to see if 1 OR 0
+#     shift to LSB
+#     CHECK if == 0 OR 1, break to
+#     j loop
+#   is_one:
+#     print "1"
+#   is_zero:
+#     print "0"
+# compare_reg()
+#   GOTO equal if a=b
+#   GOTO greater if a>b
+#   is_less:
+#     result = -1
+#   is_great:
+#     result = 1
+#   is_equal:
+#     result = 0
+# PrintFloat:
+#   Split FP#
+#   print pretext
+#   print sign()
+#   print pretext
+#   print expo()
+#   print pretext
+#   print mantissa()
+# CompareFloats:
+#   split_float(A)
+#   split_float(B)
+#   r1 = compare_reg(sign part of A, sign part of B)
+#     flip result
+#   r2 = compare_reg(expo part of A, expo part of B)
+#   r3 = compare_reg(mant part of A, mant part of B)
+#   #beqz $t8, compare_value # signs are the same, so do more complex comparissons
+#   move $v0, $t8 # store result
+# compare_value:
+#   Since both are assumed negative or postive, I can just check 1 reg
+#   if neg, the answer needs to be "flipped" bc -6 < -2, but abs(-6) > abs(-2)
+#   bltz $t0, flip_value
+# AddFloats:
+#   split_float(A)
+#   split_float(b)
+#   IF signs are same
+#     SAME -- or ++
+#       check if EXPONTENTS match
+#          If dont match
+#           Find offset
+#             offset = sub $t9, $biggerEXPO, $smallerEXPO
+#             shift HB.Mantissa by offset
+#             slr $t8, $...
+#     DIFF +-
+#       Check if negative value is BIGGER than positive vale MAGNITUDE
+#       result is negative
+#       subtract smaller mag from bigger mag
+#          if exponents dont match follow above procedure
+#       add a (+/-) sign accordingly
+#       Add together HB.Mantissa
+#   Normalize & Round
+# MultFloats:
+#   a1 = high?
+#   a2 = low?
+#   ADD exponents together (bias becomes "doubled"). Subtract bias ONLY ONCE (-127)
+#   MULT HB.Mantissa of both A & B
+#   Keep track of signs
+#     -*+ = +,  -*- = +
+#   Normalize & round if necessary
+# NormalizeFloat:
+#   move sign bit
+#   move mantiss part 1
+#   move mantiss part 2
+#   move expo
+#   shift SIGN 31 bits
+#   shift EXPO 22 bits
+#   find leading bit
+#   clz $t4, $t1
+#   addi $t4, $t4, 1 # incriment one (b/c hidden bit) leading 1 is "hidden bit" so skip it. 
+#   $t5 = load 23 bits from OFFSET
+#     implement rounding if wanted
+#     check the 24th bit and round accordingly (1 > round up, 0 > nothing or round down)
+#   OR answer + sign
+#   OR answer + expo
+#   OR answer + mantissa
+#   move answer
 # --- END OF PSEUDOCODE ---
-
-# REGISTERS USED
-# -----
-# $t0 = COPY of A
-# $t1 = sign of A
-# $t2 = expo of A
-# $t3 = mant of A
-# $t4 = COPY of B (if exists)
-# $t5 = sign of B
-# $t6 = expo of B
-# $t7 = mant of B
-# $t8 = CONSTANT of 1
-# $t9 = LENGTH counter
 
 # MACROS
 
@@ -49,6 +135,9 @@
 .end_macro
 
 # Prints a binary bit string: 011101010101
+# $t4 = mask
+# $t8 = 1
+# $t9 = length
 .macro print_bitstr(%register, %length)
 
   li  $t8, 1       # Used for printing
@@ -111,6 +200,10 @@
 # input: $a0 = Single precision float
 # Side effects: None
 # Notes: See the example for the exact output format.
+# $t0 = COPY of A
+# $t1 = sign of A
+# $t2 = expo of A
+# $t3 = mant of A
 PrintFloat:
 
   split_float($a0, $t0, $t1, $t2, $t3)  # split FP#
@@ -133,6 +226,16 @@ PrintFloat:
 # output: $v0 = Comparison result
 # Side effects: None
 # Notes: Returns 1 if A>B, 0 if A==B, and -1 if A<B
+# $t0 = COPY of A // and compare(mantissa)
+# $t1 = sign of A
+# $t2 = expo of A
+# $t3 = mant of A
+# $t4 = COPY of B (if exists)
+# $t5 = sign of B
+# $t6 = expo of B
+# $t7 = mant of B
+# $t8 = compare (sign)
+# $t9 = compare (exponent)
 CompareFloats:
 
   split_float($a0, $t0, $t1, $t2, $t3)  # split FP# A
@@ -149,19 +252,19 @@ CompareFloats:
 
   jr $ra
 
-compare_value:
+# compare_value:
 
-  # since I dont have time, I'm going only to compare the mantissa or $t0
+#   # since I dont have time, I'm going only to compare the mantissa or $t0
   
-  # Since both are assumed negative or postive, I can just check 1 reg
-  # if neg, the answer needs to be "flipped" bc -6 < -2, but abs(-6) > abs(-2)
-  bltz $t0, flip_value
-  move $t8, $t0
-  jr $ra
+#   # Since both are assumed negative or postive, I can just check 1 reg
+#   # if neg, the answer needs to be "flipped" bc -6 < -2, but abs(-6) > abs(-2)
+#   bltz $t0, flip_value
+#   move $t8, $t0
+#   jr $ra
 
-flip_value:
-  xori $t8, $t8, 0x1
-  jr $ra
+# flip_value:
+#   xori $t8, $t8, 0x1
+#   jr $ra
 
 # Subroutine AddFloats
 # Adds together two floating point values A and B.
@@ -170,7 +273,32 @@ flip_value:
 # output: $v0 = Addition result A+B
 # Side effects: None
 # Notes: Returns the normalized FP result of A+B
+# $t0 = COPY of A
+# $t1 = sign of A
+# $t2 = expo of A
+# $t3 = mant of A
+# $t4 = COPY of B (if exists)
+# $t5 = sign of B
+# $t6 = expo of B
+# $t7 = mant of B
 AddFloats:
+
+  split_float($a0, $t0, $t1, $t2, $t3)  # split FP# A
+  split_float($a1, $t4, $t5, $t6, $t7)  # split FP# B
+
+  # check for same sign
+  # bne		$t1, $t5, diff_sign	# if $t1 != $t5 then same_sign
+
+  # Here the program would split into two
+  # if the above break check is true, the signs are different
+  # so a "diff_sign" method would be called
+
+  # Here the program would split again
+  # bne		$t2, $t6, diff_expo	# if $t2 != $t6 then diff_expo
+  # if the exponents are "different" then they will be normalized
+
+  # Here we know that bothe the sign and exponents are the same so we can finally add
+
 
   # To add FP# there are two cases...
 
@@ -187,11 +315,14 @@ AddFloats:
       # subtract smaller magnitude from larger magntiude
     # Add (+/-) sign
 
-
-
   jr $ra
 
-  # to make it same exonet just shift it the same amount
+  # diff_sign:
+  # diff_exponent:
+    # Find offset
+    # offset = sub $t9, $biggerEXPO, $smallerEXPO
+    # shift HB.Mantissa by offset
+    # slr $t8, $...
 
 # Subroutine MultFloats
 # Multiplies two floating point values A and B.
@@ -207,8 +338,12 @@ MultFloats:
   # a1 = high?
   # a2 = low?
 
+  # ADD exponents together (bias becomes "doubled"). Subtract bias ONCE
+  # MULT HB.Mantissa of both A & B
+  # Normalize & round if necessary
+
 # Subroutine NormalizeFloat
-# Normalizes, rounds, and â€œpacksâ€ a floating point value.
+# Normalizes, rounds, and “packs” a floating point value.
 # input: $a0 = 1-bit Sign bit (right aligned)
 # $a1 = [63:32] of Mantissa
 # $a2 = [31:0] of Mantissa
@@ -223,20 +358,40 @@ MultFloats:
 # Mantissa for the MultFloats function. (HINT: This
 # can be the output of the MULTU HI/LO registers!)
 NormalizeFloat:
+
+  move $t0, $a1   # move sign bit
+  move $t1, $a1   # move mantiss part 1
+  move $t2, $a2   # move mantiss part 2
+  move $t3, $a3   # move expo
+
+  sll $t0, $t0, 31 # shift over
+  sll $t3, $t3, 22 # shift
+
+  # Since I dont have time, I'm just going not use the result of this
+  #find leading bit
+  clz $t4, $t1
+  addi $t4, $t4, 1 # incriment one
+
+  # Here I would load 23 bits from the offset in $t4, round, etc.. , but for now
+  # I'm just gonna "copy" $t4
+  move $t5, $t1
+
+  # OR together answer
+  or $t9, $t9, $t0 # sign bit
+  or $t9, $t9, $t3 # exponent
+  or $t9, $t9, $t5 # mantissa
+
+  # move answer to $v0 reg
+  move $v0, $t9
+
+  # in $a1 find the leading 1
+    # clz $t0 $a1
+    # leading 1 is "hidden bit" so skip it. 
+
+  # Count 23 bits after that position to get the mantissa
+    # implement rounding if wanted
+      # check the 24th bit and round accordingly (1 > round up, 0 > nothing or round down)
+
+  # OR together registers to get final result
+    
   jr $ra
-
-  # find leading "1" , that is hidden bit, so skip it
-  # then count 23 bits, then truncate
-
-  # use mask to find bit, set counter, to find bit position
-  # OR use CLZ to count leading zeros
-
-  # the OR togetheer
-
-
-
-Multiplying 
-Add together exponents (bias is doubled)
-Subtract bias once 
-Multiply HB.Mantissa of both numbers
-Normalize & round if necessary
