@@ -4,6 +4,9 @@
 # Section 01H, Carlos
 # =============
 
+# --- PSEUDOCODE ---
+# --- END OF PSEUDOCODE ---
+
 # REGISTERS USED
 # -----
 # $t0 = COPY of A
@@ -168,6 +171,24 @@ flip_value:
 # Side effects: None
 # Notes: Returns the normalized FP result of A+B
 AddFloats:
+
+  # To add FP# there are two cases...
+
+  # CASE A: SAME SIGN
+    # check if EXPONTENTS match
+      # if not find OFFSET by subtracting smaller expo from larger
+        # then shift HB.Mantissa of smaller number right by offset
+    # Add together HB.Mantissa
+    # Normalize & Round
+
+  # CASE B: DIFFERENT SIGN
+    # Check IF negative value magnitude is BIGGER then positive value magnitude
+      # IF so result needs to be negative, if not then postive
+      # subtract smaller magnitude from larger magntiude
+    # Add (+/-) sign
+
+
+
   jr $ra
 
   # to make it same exonet just shift it the same amount
@@ -211,3 +232,11 @@ NormalizeFloat:
   # OR use CLZ to count leading zeros
 
   # the OR togetheer
+
+
+
+Multiplying 
+Add together exponents (bias is doubled)
+Subtract bias once 
+Multiply HB.Mantissa of both numbers
+Normalize & round if necessary
