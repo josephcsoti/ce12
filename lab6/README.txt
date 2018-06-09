@@ -3,7 +3,7 @@ LAB 6: FLOATING POINT MATH
 CMPE 012 Spring 2018
 
 Joseph Csoti, jcsoti
-Section 01H, Carlos
+Section 01D, Rebecca + Carlos
 --------------------------------
 
 
