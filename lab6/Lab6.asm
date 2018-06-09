@@ -343,7 +343,7 @@ MultFloats:
   # Normalize & round if necessary
 
 # Subroutine NormalizeFloat
-# Normalizes, rounds, and “packs” a floating point value.
+# Normalizes, rounds, and ï¿½packsï¿½ a floating point value.
 # input: $a0 = 1-bit Sign bit (right aligned)
 # $a1 = [63:32] of Mantissa
 # $a2 = [31:0] of Mantissa
@@ -357,6 +357,13 @@ MultFloats:
 # represent an 18-bit integer plus 46-bit fraction
 # Mantissa for the MultFloats function. (HINT: This
 # can be the output of the MULTU HI/LO registers!)
+# $t0 = SIGN bit
+# $t1 = MANTISSA p1
+# $t2 = MANTISSA p2
+# $t3 = EXPO
+# $t4 = COUNT of leading 0's
+# $t5 = NEW, reduced mantissa
+# $t9 = TEMP answer
 NormalizeFloat:
 
   move $t0, $a1   # move sign bit
