@@ -5,10 +5,17 @@
 # =============
 
 # REGISTERS USED
-# $t0 = COPY of INPUT
-# $t1 = sign
-# $t2 = expo
-# $t3 = mant
+# -----
+# $t0 = COPY of A
+# $t1 = sign of A
+# $t2 = expo of A
+# $t3 = mant of A
+# $t4 = COPY of B (if exists)
+# $t5 = sign of B
+# $t6 = expo of B
+# $t7 = mant of B
+# $t8 = CONSTANT of 1
+# $t9 = LENGTH counter
 
 # MACROS
 
@@ -27,59 +34,65 @@
 
 # splits a float into 3 different registers
 .macro split_float(%src, %dst, %r1, %r2, %r3)
-  move %dst, %src
+  move %dst, %src            # Copy FP #
 
 	andi %r3, %dst, 0x7FFFFF   # Store mantissa
-  srl %dst, %dst, 23          # shift to move mantissa
+  srl %dst, %dst, 23         # shift 23 to move mantissa
 
   andi %r2, %dst, 0xFF       # store expo
-  srl %dst, %dst, 8           # shift to move expo
+  srl %dst, %dst, 8          # shift 8 to move expo
 
   andi %r1, %dst, 0x1        # store bit
 .end_macro
 
-# %length is = Length-1
+# Prints a binary bit string: 011101010101
 .macro print_bitstr(%register, %length)
 
-  li    $t8, 1 # constant
-  li    $t4, 1 # mask with bit is LSB
-  li    $t9, %length # counter
+  li  $t8, 1       # Used for printing
+  li  $t4, 1       # Create mask bit in LSB
+  li  $t9, %length # counter (starting from length)
 
-  sll   $t4, $t4, %length # move bit to MSB
+  sll   $t4, $t4, %length # move mask bit to MSB
 
   loop:
     beqz  $t4, end
-    and   $t5, $t4, %register # store bit in $t5
-    srlv  $t5, $t5, $t9 # move bit to RIGHT
-    srl   $t4, $t4, 1
+    and   $t5, $t4, %register   # AND to see if result is 1 or 0
+    srlv  $t5, $t5, $t9         # move bit to RIGHT
+    srl   $t4, $t4, 1           # move bitmask to RIGHT
 
-    beqz  $t5, is_zero
-    beq   $t5, $t8, is_one
+    beqz  $t5, is_zero      # t ?= 0
+    beq   $t5, $t8, is_one  # t ?= 1
 
     j loop
   is_one:
-    print_int($t8)
-    sub $t9, $t9, 1
+    print_int($t8)    # Print "1"
+    sub $t9, $t9, 1   # i--
     j loop
   is_zero:
-    print_int($zero)
-    sub $t9, $t9, 1
+    print_int($zero)  # Print "0"
+    sub $t9, $t9, 1   # i--
     j loop
   end:
 .end_macro
 
+# Compares reg A and B and writes result
+# A = B: 0
+# A > B: 1 
+# A < B: -1
 .macro compare_reg(%result, %a, %b)
-  beq %a, %b, is_equal
-  bgt %a, %b, is_great
+  beq %a, %b, is_equal  # A == B
+  bgt %a, %b, is_great  # A > B
+  # At this point we know A < B, so no need to break if less than...
+  # so we just move on to the next instruction
 
   is_less:
-    li %result, -1
-    j end_comp
+    li %result, -1    # write 1
+    j end_comp        # break
   is_great:
-    li %result, 1
-    j end_comp
+    li %result, 1     # write 1
+    j end_comp        # break
   is_equal:
-    li %result, 0
+    li %result, 0     # write 0
   end_comp:
 .end_macro
 
@@ -95,23 +108,18 @@
 # input: $a0 = Single precision float
 # Side effects: None
 # Notes: See the example for the exact output format.
-
-  # Floating point Number
-  # 0           10111101    00010100000011001110111
-  # (sign 1b)   (expo 8b)   (mantisa 23b)
-
 PrintFloat:
 
-  split_float($a0, $t0, $t1, $t2, $t3)
+  split_float($a0, $t0, $t1, $t2, $t3)  # split FP#
 
-  print_str(str_sign)
-  print_int($t1)
+  print_str(str_sign)   # print "sign" pre_text
+  print_int($t1)        # print sign value
 
-  print_str(str_expo)
-  print_bitstr($t2, 7)
+  print_str(str_expo)   # print "expo" pre_text
+  print_bitstr($t2, 7)  # print expo value
 
-  print_str(str_mant)
-  print_bitstr($t3, 22)
+  print_str(str_mant)   # print "mant" pre_text
+  print_bitstr($t3, 22) # print mant value
 
   jr $ra
 
@@ -124,16 +132,17 @@ PrintFloat:
 # Notes: Returns 1 if A>B, 0 if A==B, and -1 if A<B
 CompareFloats:
 
-  split_float($a0, $t0, $t1, $t2, $t3)
-  split_float($a1, $t4, $t5, $t6, $t7)
+  split_float($a0, $t0, $t1, $t2, $t3)  # split FP# A
+  split_float($a1, $t4, $t5, $t6, $t7)  # split FP# B
 
   compare_reg($t8, $t1, $t5) # compare sign bit
-  sub $t8, $zero, $t8  # $t8 is "flipped": -1 => 1, 1 => -1, 0 => 0
+    sub $t8, $zero, $t8  # Flip value just because 1 means (-) in FP:  -1 => 1, 1 => -1, 0 => 0
+
   compare_reg($t9, $t2, $t6) # compare expo
   compare_reg($t0, $t3, $t7) # compare mantissa
 
-  #beqz $t8, compare_value # signs are the same
-  move $v0, $t8
+  #beqz $t8, compare_value # signs are the same, so do more complex comparissons
+  move $v0, $t8 # store result
 
   jr $ra
 
@@ -202,5 +211,3 @@ NormalizeFloat:
   # OR use CLZ to count leading zeros
 
   # the OR togetheer
-
-# HELPER FUNCTIONS
